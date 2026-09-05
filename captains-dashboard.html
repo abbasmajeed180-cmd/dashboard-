@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة أداء الكباتن</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --asphalt:#12151c;
+    --asphalt-2:#1c212b;
+    --paper:#f1f2f5;
+    --card:#ffffff;
+    --ink:#1b1e24;
+    --ink-soft:#5b616c;
+    --line:#dcdfe4;
+    --amber:#f2a93b;
+    --amber-deep:#c9821c;
+    --teal:#1e7f6e;
+    --teal-soft:#e2f1ee;
+    --red:#d6483a;
+    --red-soft:#fbe7e4;
+    --amber-soft:#fdf1dd;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Tahoma','Segoe UI','Dubai','Geeza Pro',Arial,sans-serif;
+    line-height:1.55;
+  }
+  .num{ font-variant-numeric: tabular-nums; direction:ltr; unicode-bidi:isolate; }
+
+  .topbar{
+    background:linear-gradient(180deg,var(--asphalt) 0%, var(--asphalt-2) 100%);
+    color:#fff;
+    padding:22px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:3px solid var(--amber);
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand-mark{
+    width:40px;height:40px;border-radius:8px;
+    background:var(--amber);
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px; flex-shrink:0;
+  }
+  .brand h1{font-size:19px; margin:0; font-weight:800; letter-spacing:.2px;}
+  .brand p{margin:2px 0 0; font-size:12.5px; color:#c7ccd6;}
+  .topbar-actions{display:flex; gap:10px;}
+  .btn{
+    border:1px solid transparent; border-radius:6px; padding:9px 16px;
+    font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit;
+    transition:transform .08s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-amber{background:var(--amber); color:#1c1300;}
+  .btn-amber:hover{background:#e8991f;}
+  .btn-ghost{background:transparent; color:#e9ebf0; border-color:#3a4150;}
+  .btn-ghost:hover{border-color:var(--amber);}
+  .btn-line{background:transparent;color:var(--asphalt);border-color:var(--line);}
+  .btn-line:hover{border-color:var(--asphalt);}
+  .last-sync{color:#c7ccd6; font-size:11.5px; align-self:center;}
+  .hidden{display:none !important;}
+
+  main{max-width:1240px; margin:0 auto; padding:32px;}
+
+  .upload-wrap{padding:60px 16px 40px;}
+  .upload-title{max-width:660px; margin:0 auto 34px; text-align:center;}
+  .upload-title h2{font-size:26px; margin:0 0 10px; font-weight:800;}
+  .upload-title p{color:var(--ink-soft); font-size:14.5px; margin:0;}
+
+  .dropzone{
+    max-width:660px; margin:0 auto; border:2px dashed #b9bdc6; border-radius:12px;
+    background:var(--card); padding:46px 30px; text-align:center; cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .dropzone.drag{border-color:var(--amber); background:var(--amber-soft);}
+  .dropzone .icon{font-size:34px; margin-bottom:10px;}
+  .dropzone h3{margin:0 0 6px; font-size:16px; font-weight:800;}
+  .dropzone p{margin:0 0 18px; color:var(--ink-soft); font-size:13px;}
+  .dropzone small{display:block; margin-top:14px; color:#8a8f99; font-size:11.5px;}
+
+  .or-row{display:flex; align-items:center; gap:12px; max-width:660px; margin:22px auto;}
+  .or-row .line{flex:1; height:1px; background:var(--line);}
+  .or-row span{font-size:12px; color:#8a8f99;}
+  .sample-row{max-width:660px; margin:0 auto; text-align:center;}
+
+  .sheet-url-box{max-width:660px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px 22px;}
+  .sheet-url-box p{margin:0 0 12px; font-size:12.5px; color:var(--ink-soft);}
+  .sheet-url-row{display:flex; gap:8px;}
+  .sheet-url-row input{
+    flex:1; border:1px solid var(--line); border-radius:6px; padding:9px 12px;
+    font-family:inherit; font-size:13px; direction:ltr; text-align:left;
+  }
+  .auto-refresh-row{display:flex; align-items:center; gap:6px; margin-top:12px; font-size:12.5px; color:var(--ink-soft); cursor:pointer;}
+  #sheetUrlStatus{display:block; margin-top:10px; font-size:11.5px; color:#8a8f99;}
+  #sheetUrlStatus.err{color:var(--red);}
+  #sheetUrlStatus.ok{color:var(--teal);}
+
+  .sheet-url-box{max-width:660px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px 22px;}
+  .sheet-url-box p{margin:0 0 12px; font-size:12.5px; color:var(--ink-soft);}
+  .sheet-url-row{display:flex; gap:8px;}
+  .sheet-url-row input{
+    flex:1; border:1px solid var(--line); border-radius:6px; padding:9px 12px;
+    font-family:inherit; font-size:13px; direction:ltr; text-align:left;
+  }
+  #sheetUrlStatus{display:block; margin-top:10px; font-size:11.5px; color:#8a8f99;}
+  #sheetUrlStatus.err{color:var(--red);}
+  #sheetUrlStatus.ok{color:var(--teal);}
+
+  .map-card{
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:26px 28px; max-width:900px; margin:0 auto;
+  }
+  .map-card h2{margin:0 0 4px; font-size:19px;}
+  .map-card > p{margin:0 0 22px; color:var(--ink-soft); font-size:13.5px;}
+  .map-group-title{
+    font-size:12px; font-weight:800; color:var(--amber-deep); margin:22px 0 10px;
+    padding-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .map-group-title:first-of-type{margin-top:0;}
+  .map-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;}
+  .map-field label{display:block; font-size:13px; font-weight:700; margin-bottom:6px;}
+  .map-field select{
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:6px;
+    font-family:inherit; font-size:13.5px; background:#fff; color:var(--ink);
+  }
+  .req-badge{display:inline-block; background:var(--red-soft); color:var(--red); font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:4px; margin-inline-start:6px;}
+  .opt-badge{display:inline-block; background:var(--teal-soft); color:var(--teal); font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:4px; margin-inline-start:6px;}
+  .map-actions{display:flex; justify-content:space-between; align-items:center; margin-top:26px; padding-top:18px; border-top:1px solid var(--line); gap:16px;}
+  .map-note{font-size:12px; color:#8a8f99;}
+
+  .dash-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:18px; flex-wrap:wrap; gap:14px;}
+  .dash-head h2{margin:0 0 4px; font-size:21px;}
+  .dash-head p{margin:0; color:var(--ink-soft); font-size:13px;}
+
+  .filters{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .filters select{
+    border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-family:inherit;
+    font-size:12.5px; background:#fff; color:var(--ink); min-width:150px;
+  }
+  .filters .flabel{font-size:11.5px; color:var(--ink-soft); font-weight:700;}
+
+  .kpi-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:14px; margin-bottom:24px;}
+  .kpi{
+    background:var(--card); border:1px solid var(--line); border-radius:8px;
+    padding:16px 14px; border-inline-start:4px solid var(--amber);
+  }
+  .kpi.c-teal{border-inline-start-color:var(--teal);}
+  .kpi .lbl{font-size:11px; color:var(--ink-soft); font-weight:700; margin-bottom:8px;}
+  .kpi .val{font-size:22px; font-weight:800;}
+  .kpi .tag{display:inline-block; font-size:9.5px; font-weight:700; color:var(--amber-deep); background:var(--amber-soft); padding:1px 6px; border-radius:4px; margin-inline-start:6px; vertical-align:middle;}
+
+  .grid-2{display:grid; grid-template-columns:1.3fr 1fr; gap:18px; margin-bottom:18px;}
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px;}
+  .panel h3{margin:0 0 3px; font-size:15px; font-weight:800;}
+  .panel .desc{margin:0 0 16px; font-size:12px; color:var(--ink-soft);}
+  .chart-box{position:relative; height:280px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:right; font-size:11.5px; color:var(--ink-soft); font-weight:700;
+    padding:10px 12px; border-bottom:2px solid var(--line); cursor:pointer; white-space:nowrap;
+  }
+  thead th:hover{color:var(--ink);}
+  thead th .arrow{font-size:9px; margin-inline-start:3px; color:var(--amber-deep);}
+  tbody td{padding:10px 12px; border-bottom:1px solid #edeef1; white-space:nowrap;}
+  tbody tr:hover{background:#fafafa;}
+  .rank{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:5px; background:var(--asphalt); color:#fff;
+    font-size:11px; font-weight:800;
+  }
+  .pill{padding:2px 8px; border-radius:5px; font-size:11.5px; font-weight:700;}
+  .pill.good{background:var(--teal-soft); color:var(--teal);}
+  .pill.warn{background:var(--amber-soft); color:var(--amber-deep);}
+  .pill.bad{background:var(--red-soft); color:var(--red);}
+
+  .search-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
+  .search-row input{
+    border:1px solid var(--line); border-radius:6px; padding:8px 12px; font-family:inherit;
+    font-size:13px; width:240px;
+  }
+  .table-wrap{overflow-x:auto;}
+
+  .note-box{
+    background:var(--amber-soft); border:1px solid #ecd6a6; color:#7a5711;
+    border-radius:8px; padding:12px 14px; font-size:12.5px; margin-bottom:18px;
+  }
+  footer{text-align:center; padding:26px; color:#9aa0aa; font-size:11.5px;}
+
+  @media (max-width:900px){
+    .grid-2{grid-template-columns:1fr;}
+    .map-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">🛵</div>
+    <div>
+      <h1>لوحة أداء الكباتن</h1>
+      <p id="topSub">ارفع ملف البيانات لعرض التحليلات</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <span class="last-sync hidden" id="lastSync"></span>
+    <button class="btn btn-amber hidden" id="btnRefreshSheet">🔄 تحديث من الشيت</button>
+    <button class="btn btn-ghost hidden" id="btnReset">ملف جديد</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- ============ SCREEN 1: UPLOAD ============ -->
+  <section id="screenUpload">
+    <div class="upload-wrap">
+      <div class="upload-title">
+        <h2>ارفع بيانات الكباتن</h2>
+        <p>ملف إكسل أو CSV يحتوي على تفاصيل الطلبات وأوقاتها (Driver Accept, Driver Arrived, Driver Left, Order Delivered...) وسنحوّله تلقائياً إلى لوحة بيانات كاملة: وقت الانتظار بالمطعم، الوقت من الموافقة حتى التسليم، ومعدل الاستغلال UTR.</p>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <div class="icon">📄</div>
+        <h3>اسحب الملف هنا أو اضغط للاختيار</h3>
+        <p>يدعم xlsx, xls, csv</p>
+        <button class="btn btn-amber" type="button" id="btnBrowse">اختيار ملف</button>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="hidden">
+        <small id="uploadStatus"></small>
+      </div>
+
+      <div class="or-row"><div class="line"></div><span>أو</span><div class="line"></div></div>
+      <div class="sample-row">
+        <button class="btn btn-line" id="btnSample">تجربة اللوحة ببيانات نموذجية</button>
+      </div>
+
+      <div class="or-row"><div class="line"></div><span>أو من Google Sheets (يعمل فقط عند استضافة هذا الملف على رابط حقيقي، وليس داخل Claude)</span><div class="line"></div></div>
+      <div class="sheet-url-box">
+        <p>اجعل صلاحية العرض "أي شخص لديه الرابط"، ثم الصق رابط الشيت العادي:</p>
+        <div class="sheet-url-row">
+          <input type="text" id="sheetUrlInput" placeholder="https://docs.google.com/spreadsheets/d/...">
+          <button class="btn btn-amber" id="btnSheetFetch">جلب البيانات</button>
+        </div>
+        <label class="auto-refresh-row"><input type="checkbox" id="autoRefreshChk"> تحديث تلقائي كل 30 ثانية</label>
+        <small id="sheetUrlStatus"></small>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2: MAPPING ============ -->
+  <section id="screenMapping" class="hidden">
+    <div class="map-card">
+      <h2>اربط أعمدة ملفك</h2>
+      <p>حددنا الأعمدة تلقائياً بناءً على أسمائها — تأكد منها أو غيّرها. الحقول الاختيارية تُفعّل مؤشرات ورسوم إضافية إن توفرت بياناتها.</p>
+      <div id="mapGrid"></div>
+      <div class="map-actions">
+        <span class="map-note">لا يوجد عمود صريح لساعات العمل في ملفك؟ اترك حقل "ساعات العمل" فارغاً وسنحسب معدل الاستغلال بشكل تقديري من نافذة نشاط الكابتن الفعلية.</span>
+        <button class="btn btn-amber" id="btnGenerate" style="white-space:nowrap;">إنشاء اللوحة</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 3: DASHBOARD ============ -->
+  <section id="screenDash" class="hidden">
+    <div class="dash-head">
+      <div>
+        <h2>نظرة عامة</h2>
+        <p id="dashSubtitle"></p>
+      </div>
+      <div class="filters" id="filtersRow"></div>
+    </div>
+
+    <div id="missingNote" class="note-box hidden"></div>
+
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>الكباتن الأكثر طلبات</h3>
+        <p class="desc">أفضل 10 كباتن من حيث عدد الطلبات المنجزة</p>
+        <div class="chart-box"><canvas id="chartTopCaptains"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>توزيع وقت الانتظار بالمطعم</h3>
+        <p class="desc">من وصول الكابتن للمطعم حتى مغادرته بالطلب (دقائق)</p>
+        <div class="chart-box"><canvas id="chartWaitDist"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>معدل الاستغلال (UTR) حسب الكابتن</h3>
+        <p class="desc" id="utrDesc">نسبة الوقت المستغرق بالطلبات مقارنة بساعات العمل</p>
+        <div class="chart-box"><canvas id="chartUtr"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>اتجاه الطلبات اليومي</h3>
+        <p class="desc">عدد الطلبات لكل يوم خلال الفترة المحددة</p>
+        <div class="chart-box"><canvas id="chartTrend"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-2" id="dimRow">
+      <div class="panel">
+        <h3>الطلبات حسب المدينة</h3>
+        <p class="desc">أكثر المدن نشاطاً</p>
+        <div class="chart-box"><canvas id="chartCity"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>حالة الطلبات</h3>
+        <p class="desc">توزيع الطلبات حسب حالة الإتمام</p>
+        <div class="chart-box"><canvas id="chartStatus"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:26px;">
+      <div class="search-row">
+        <div>
+          <h3 style="margin-bottom:2px;">جدول تفصيلي للكباتن</h3>
+          <p class="desc" style="margin-bottom:0;">اضغط على أي عمود للترتيب</p>
+        </div>
+        <input type="text" id="tableSearch" placeholder="بحث عن كابتن...">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="tableHead"></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>يتم تحليل الملف بالكامل داخل المتصفح — لا تُرسل أي بيانات لأي خادم خارجي.</footer>
+
+<script>
+/* ===================== STATE ===================== */
+let RAW_ROWS = [];
+let HEADERS = [];
+let MAPPING = {};
+let CAPTAIN_STATS = [];
+let SORT_STATE = {key:'orders', dir:'desc'};
+let FILTER_CITY = '__all__';
+let FILTER_STATUS = '__all__';
+let SHEET_URL = null;
+let AUTO_REFRESH_TIMER = null;
+
+const FIELD_DEFS = [
+  {key:'captain', label:'اسم الكابتن', required:true, group:'أساسي', keywords:['driver name','اسم الكابتن','كابتن','مندوب']},
+  {key:'driverId', label:'معرف الكابتن', required:false, group:'أساسي', keywords:['driver id','معرف الكابتن','كود الكابتن']},
+
+  {key:'city', label:'المدينة', required:false, group:'أبعاد وتصنيفات', keywords:['city','مدينة']},
+  {key:'store', label:'اسم المطعم / المتجر', required:false, group:'أبعاد وتصنيفات', keywords:['store name','store','مطعم','restaurant name']},
+  {key:'orderType', label:'نوع الطلب', required:false, group:'أبعاد وتصنيفات', keywords:['order type','نوع الطلب']},
+  {key:'completion', label:'حالة إتمام الطلب', required:false, group:'أبعاد وتصنيفات', keywords:['completion','status','الحالة']},
+
+  {key:'date', label:'تاريخ الطلب', required:false, group:'التوقيتات', keywords:['order date','تاريخ','date']},
+  {key:'orderOffered', label:'وقت عرض الطلب على الكابتن', required:false, group:'التوقيتات', keywords:['order offered','عرض الطلب','offered']},
+  {key:'acceptTime', label:'وقت موافقة الكابتن (Driver Accept)', required:false, group:'التوقيتات', keywords:['driver accept','موافقة الكابتن','قبول الكابتن']},
+  {key:'arriveRestTime', label:'وقت وصول الكابتن للمطعم (Driver Arrived)', required:false, group:'التوقيتات', keywords:['driver arrived','وصول المطعم','arrive']},
+  {key:'pickupTime', label:'وقت مغادرة الكابتن للمطعم (Driver Left)', required:false, group:'التوقيتات', keywords:['driver left','مغادرة المطعم','استلام الطلب']},
+  {key:'deliverTime', label:'وقت تسليم الطلب (Order Delivered)', required:false, group:'التوقيتات', keywords:['order delivered','delivered','تسليم','وصول العميل']},
+
+  {key:'amount', label:'قيمة الطلب', required:false, group:'أرقام', keywords:['amount','مبلغ','قيمة الطلب']},
+  {key:'tripDistance', label:'مسافة الرحلة الكلية (كم)', required:false, group:'أرقام', keywords:['ff distance','total distance','straight line distance']},
+  {key:'workHours', label:'ساعات عمل الكابتن (إن توفرت)', required:false, group:'أرقام', keywords:['working hours','ساعات العمل','shift hours','total orders time']},
+];
+
+/* ===================== TIME PARSING ===================== */
+function excelSerialToDate(serial, baseDate){
+  const isTimeOnly = serial < 1;
+  const utc_days = Math.floor(serial - 25569);
+  const utc_value = utc_days * 86400;
+  const date_info = new Date(utc_value * 1000);
+  const fractional_day = serial - Math.floor(serial) + 1e-7;
+  let totalSeconds = Math.floor(86400 * fractional_day);
+  const seconds = totalSeconds % 60; totalSeconds -= seconds;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor(totalSeconds / 60) % 60;
+  if(isTimeOnly && baseDate){
+    const d = new Date(baseDate);
+    d.setHours(hours, minutes, seconds, 0);
+    return d;
+  }
+  return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+}
+function parseTimeString(str, baseDate){
+  if(str === null || str === undefined) return null;
+  str = String(str).trim();
+  if(!str) return null;
+  let m = str.match(/^(\d{1,2}):(\d{2})(:(\d{2}))?\s*(AM|PM|am|pm|ص|م)?$/);
+  if(m){
+    let h = parseInt(m[1],10);
+    const min = parseInt(m[2],10);
+    const sec = m[4] ? parseInt(m[4],10) : 0;
+    const ampm = m[5];
+    if(ampm){
+      const isPM = /pm|م/i.test(ampm);
+      if(isPM && h < 12) h += 12;
+      if(!isPM && h === 12) h = 0;
+    }
+    const base = baseDate ? new Date(baseDate) : new Date(2000,0,1);
+    base.setHours(h, min, sec, 0);
+    return base;
+  }
+  const d = new Date(str);
+  if(!isNaN(d.getTime())) return d;
+  return null;
+}
+function toDateTime(value, baseDateValue){
+  if(value === null || value === undefined || value === '') return null;
+  let baseDate = null;
+  if(baseDateValue instanceof Date) baseDate = baseDateValue;
+  else if(typeof baseDateValue === 'number') baseDate = excelSerialToDate(baseDateValue, null);
+  else if(typeof baseDateValue === 'string' && baseDateValue.trim()){
+    const bd = new Date(baseDateValue);
+    if(!isNaN(bd.getTime())) baseDate = bd;
+  }
+  if(value instanceof Date) return value;
+  if(typeof value === 'number') return excelSerialToDate(value, baseDate);
+  if(typeof value === 'string') return parseTimeString(value, baseDate);
+  return null;
+}
+function minutesBetween(a,b){
+  if(!a || !b) return null;
+  const diff = (b.getTime() - a.getTime())/60000;
+  if(isNaN(diff)) return null;
+  if(diff < -720 || diff > 24*60) return null;
+  return diff;
+}
+function dayKeyOf(dateVal){
+  if(!dateVal) return null;
+  let d = dateVal instanceof Date ? dateVal : (typeof dateVal==='number'? excelSerialToDate(dateVal,null) : new Date(dateVal));
+  if(isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0,10);
+}
+function fmtMin(v){ if(v===null||v===undefined||isNaN(v)) return '—'; return v.toFixed(1)+' د'; }
+function fmtNum(v){ if(v===null||v===undefined||isNaN(v)) return '—'; return Math.round(v).toLocaleString('en-US'); }
+function fmtPct(v){ if(v===null||v===undefined||isNaN(v)) return '—'; return v.toFixed(1)+'%'; }
+function fmtMoney(v){ if(v===null||v===undefined||isNaN(v)) return '—'; return v.toLocaleString('en-US',{maximumFractionDigits:0}); }
+function fmtKm(v){ if(v===null||v===undefined||isNaN(v)) return '—'; return v.toFixed(1)+' كم'; }
+
+/* ===================== FILE HANDLING ===================== */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+document.getElementById('btnBrowse').addEventListener('click', ()=>fileInput.click());
+dropzone.addEventListener('click', ()=>fileInput.click());
+dropzone.addEventListener('dragover', e=>{e.preventDefault(); dropzone.classList.add('drag');});
+dropzone.addEventListener('dragleave', ()=>dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e=>{ if(e.target.files.length) handleFile(e.target.files[0]); });
+document.getElementById('btnSample').addEventListener('click', loadSampleData);
+document.getElementById('btnReset').addEventListener('click', ()=>{ stopAutoRefresh(); location.reload(); });
+
+/* ===================== GOOGLE SHEETS ===================== */
+function extractSheetId(raw){
+  const m = raw.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : null;
+}
+function extractGid(raw){
+  const m = raw.match(/[?#&]gid=([0-9]+)/);
+  return m ? m[1] : '0';
+}
+async function fetchSheetCsv(rawUrl){
+  const id = extractSheetId(rawUrl.trim());
+  const gid = extractGid(rawUrl.trim());
+  const candidates = id ? [
+    `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`,
+    `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`
+  ] : [rawUrl.trim()];
+
+  let lastErr = null;
+  for(const url of candidates){
+    try{
+      const res = await fetch(url, {method:'GET', cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if(!text || text.trim().startsWith('<')) throw new Error('رد غير صالح (تحقق من صلاحية "أي شخص لديه الرابط")');
+      return text;
+    }catch(err){ lastErr = err; }
+  }
+  throw lastErr || new Error('تعذّر الوصول للرابط');
+}
+function loadRowsFromCsvText(csvText){
+  const wb = XLSX.read(csvText, {type:'string', cellDates:true});
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(sheet, {defval:null});
+  if(!json.length) throw new Error('الشيت لا يحتوي بيانات.');
+  RAW_ROWS = json;
+  HEADERS = Object.keys(json[0]);
+}
+function updateLastSync(){
+  const el = document.getElementById('lastSync');
+  el.classList.remove('hidden');
+  el.textContent = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-IQ');
+}
+function stopAutoRefresh(){
+  if(AUTO_REFRESH_TIMER){ clearInterval(AUTO_REFRESH_TIMER); AUTO_REFRESH_TIMER = null; }
+}
+function startAutoRefresh(){
+  stopAutoRefresh();
+  AUTO_REFRESH_TIMER = setInterval(()=>{ refreshFromSheet(true); }, 30000);
+}
+
+document.getElementById('btnSheetFetch').addEventListener('click', async ()=>{
+  const input = document.getElementById('sheetUrlInput');
+  const statusEl = document.getElementById('sheetUrlStatus');
+  if(!input.value.trim()){ statusEl.className='err'; statusEl.textContent='الصق رابط الشيت أولاً.'; return; }
+  statusEl.className=''; statusEl.textContent='جارِ الاتصال بالشيت...';
+  try{
+    const csvText = await fetchSheetCsv(input.value);
+    loadRowsFromCsvText(csvText);
+    SHEET_URL = input.value.trim();
+    statusEl.className='ok'; statusEl.textContent='تم الجلب بنجاح.';
+    if(document.getElementById('autoRefreshChk').checked) startAutoRefresh();
+    buildMappingScreen();
+    showScreen('screenMapping');
+  }catch(err){
+    statusEl.className='err';
+    statusEl.textContent = 'تعذّر الجلب (' + err.message + '). تأكد إن الملف مستضاف على رابط حقيقي (مثل GitHub Pages) وليس داخل Claude، وإن صلاحية الشيت "أي شخص لديه الرابط".';
+  }
+});
+
+async function refreshFromSheet(isAuto){
+  if(!SHEET_URL) return;
+  const btn = document.getElementById('btnRefreshSheet');
+  const originalText = btn.textContent;
+  if(!isAuto){ btn.textContent = 'جارِ التحديث...'; btn.disabled = true; }
+  try{
+    loadRowsFromCsvText(await fetchSheetCsv(SHEET_URL));
+    const mappedCols = Object.values(MAPPING).filter(v=>v);
+    const missingCols = mappedCols.filter(c=>!HEADERS.includes(c));
+    if(missingCols.length){
+      stopAutoRefresh();
+      alert('تغيّرت أسماء بعض الأعمدة بالشيت (' + missingCols.join(', ') + ')، يرجى إعادة ربط الأعمدة.');
+      buildMappingScreen();
+      showScreen('screenMapping');
+    } else {
+      generateDashboard(false);
+      updateLastSync();
+    }
+  }catch(err){
+    if(!isAuto) alert('تعذّر تحديث البيانات: ' + err.message);
+  }finally{
+    if(!isAuto){ btn.textContent = originalText; btn.disabled = false; }
+  }
+}
+document.getElementById('btnRefreshSheet').addEventListener('click', ()=>refreshFromSheet(false));
+
+function handleFile(file){
+  const status = document.getElementById('uploadStatus');
+  status.textContent = 'جارِ قراءة ' + file.name + ' ...';
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, {defval:null});
+      if(!json.length){ status.textContent = 'الملف فارغ أو تعذّرت قراءته.'; return; }
+      SHEET_URL = null;
+      RAW_ROWS = json;
+      HEADERS = Object.keys(json[0]);
+      buildMappingScreen();
+      showScreen('screenMapping');
+    }catch(err){
+      status.textContent = 'تعذّر قراءة الملف: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ===================== SAMPLE DATA ===================== */
+function loadSampleData(){
+  const names = ['أحمد علي','محمد جاسم','حسين كاظم','علي حيدر','مصطفى سعد','كرار فاضل','حيدر رعد','سجاد باسم','يوسف عماد','ليث ثامر'];
+  const cities = ['بغداد','البصرة','أربيل'];
+  const statuses = ['Completed','Completed','Completed','Cancelled'];
+  const rows = [];
+  const startDate = new Date(2026,7,1);
+  for(let d=0; d<14; d++){
+    const day = new Date(startDate); day.setDate(day.getDate()+d);
+    const ordersToday = 60 + Math.floor(Math.random()*40);
+    for(let i=0;i<ordersToday;i++){
+      const captain = names[Math.floor(Math.random()*names.length)];
+      const offeredHour = 10 + Math.random()*10;
+      const offered = new Date(day); offered.setHours(Math.floor(offeredHour), Math.floor((offeredHour%1)*60), 0);
+      const accept = new Date(offered.getTime() + (0.5+Math.random()*3)*60000);
+      const arriveRest = new Date(accept.getTime() + (4+Math.random()*8)*60000);
+      const wait = 2 + Math.random()*Math.random()*25;
+      const left = new Date(arriveRest.getTime() + wait*60000);
+      const deliverLeg = 6 + Math.random()*18;
+      const delivered = new Date(left.getTime() + deliverLeg*60000);
+      rows.push({
+        'Invoice Number':'INV-'+(10000+rows.length),
+        'Driver Name': captain,
+        'City': cities[Math.floor(Math.random()*cities.length)],
+        'Order Date': day,
+        'Order Offered (HH:MM:SS AM/PM)': offered,
+        'Driver Accept (HH:MM:SS AM/PM)': accept,
+        'Driver Arrived (HH:MM:SS AM/PM)': arriveRest,
+        'Driver Left (HH:MM:SS AM/PM)': left,
+        'Order Delivered (HH:MM:SS AM/PM)': delivered,
+        'Amount': 5000 + Math.round(Math.random()*15000),
+        'FF Distance(km)': +(1+Math.random()*8).toFixed(1),
+        'Completion': statuses[Math.floor(Math.random()*statuses.length)]
+      });
+    }
+  }
+  SHEET_URL = null;
+  RAW_ROWS = rows;
+  HEADERS = Object.keys(rows[0]);
+  buildMappingScreen();
+  applyMappingSelections();
+  generateDashboard(true);
+}
+
+/* ===================== MAPPING SCREEN ===================== */
+function guessColumn(keywords){
+  const lower = HEADERS.map(h=>String(h).toLowerCase());
+  for(const kw of keywords){
+    const idx = lower.findIndex(h=>h.includes(kw.toLowerCase()));
+    if(idx>-1) return HEADERS[idx];
+  }
+  return '';
+}
+function buildMappingScreen(){
+  const grid = document.getElementById('mapGrid');
+  grid.innerHTML = '';
+  MAPPING = {};
+  let currentGroup = null;
+  let groupDiv = null;
+  FIELD_DEFS.forEach(f=>{
+    const guess = guessColumn(f.keywords);
+    MAPPING[f.key] = guess;
+    if(f.group !== currentGroup){
+      currentGroup = f.group;
+      const title = document.createElement('div');
+      title.className = 'map-group-title';
+      title.textContent = currentGroup;
+      grid.appendChild(title);
+      groupDiv = document.createElement('div');
+      groupDiv.className = 'map-grid';
+      grid.appendChild(groupDiv);
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'map-field';
+    const badge = f.required ? '<span class="req-badge">إلزامي</span>' : '<span class="opt-badge">اختياري</span>';
+    wrap.innerHTML = `
+      <label>${f.label} ${badge}</label>
+      <select data-key="${f.key}">
+        <option value="">-- غير موجود --</option>
+        ${HEADERS.map(h=>`<option value="${h}" ${h===guess?'selected':''}>${h}</option>`).join('')}
+      </select>
+    `;
+    groupDiv.appendChild(wrap);
+  });
+  document.getElementById('btnGenerate').onclick = ()=>{
+    applyMappingSelections();
+    if(!MAPPING.captain){ alert('يرجى تحديد عمود اسم الكابتن على الأقل.'); return; }
+    generateDashboard(true);
+  };
+}
+function applyMappingSelections(){
+  document.querySelectorAll('#mapGrid select').forEach(sel=>{ MAPPING[sel.dataset.key] = sel.value; });
+}
+
+/* ===================== FILTERING ===================== */
+function getFilteredRows(){
+  return RAW_ROWS.filter(r=>{
+    if(MAPPING.city && FILTER_CITY !== '__all__' && String(r[MAPPING.city]) !== FILTER_CITY) return false;
+    if(MAPPING.completion && FILTER_STATUS !== '__all__' && String(r[MAPPING.completion]) !== FILTER_STATUS) return false;
+    return true;
+  });
+}
+function buildFilters(){
+  const wrap = document.getElementById('filtersRow');
+  wrap.innerHTML = '';
+  if(MAPPING.city){
+    const vals = Array.from(new Set(RAW_ROWS.map(r=>r[MAPPING.city]).filter(v=>v!==null && v!==''))).sort();
+    const sel = document.createElement('select');
+    sel.innerHTML = `<option value="__all__">كل المدن</option>` + vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+    sel.onchange = ()=>{ FILTER_CITY = sel.value; generateDashboard(false); };
+    wrap.appendChild(sel);
+  }
+  if(MAPPING.completion){
+    const vals = Array.from(new Set(RAW_ROWS.map(r=>r[MAPPING.completion]).filter(v=>v!==null && v!==''))).sort();
+    const sel = document.createElement('select');
+    sel.innerHTML = `<option value="__all__">كل الحالات</option>` + vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+    sel.onchange = ()=>{ FILTER_STATUS = sel.value; generateDashboard(false); };
+    wrap.appendChild(sel);
+  }
+}
+
+/* ===================== COMPUTATION ===================== */
+function computeStats(rows){
+  const byCaptain = new Map();
+  const waitBuckets = [0,0,0,0,0,0];
+  const dailyOrders = new Map();
+  const cityCounts = new Map();
+  const statusCounts = new Map();
+
+  rows.forEach(row=>{
+    const captain = MAPPING.captain ? row[MAPPING.captain] : null;
+    if(MAPPING.city){ const c = row[MAPPING.city]; if(c) cityCounts.set(c,(cityCounts.get(c)||0)+1); }
+    if(MAPPING.completion){ const s = row[MAPPING.completion]; if(s!==null && s!=='') statusCounts.set(s,(statusCounts.get(s)||0)+1); }
+
+    if(!captain) return;
+    if(!byCaptain.has(captain)){
+      byCaptain.set(captain, {
+        name: captain, orders:0,
+        waitSum:0, waitN:0,
+        totalSum:0, totalN:0,
+        assignSum:0, assignN:0,
+        busyMinutes:0,
+        workHoursMax:0,
+        amountSum:0, amountN:0,
+        distSum:0, distN:0,
+        perDay:new Map(),
+        globalMinAccept:null, globalMaxDeliver:null
+      });
+    }
+    const c = byCaptain.get(captain);
+    c.orders += 1;
+
+    let dateVal = MAPPING.date ? row[MAPPING.date] : null;
+    const offered = MAPPING.orderOffered ? toDateTime(row[MAPPING.orderOffered], dateVal) : null;
+    const accept = MAPPING.acceptTime ? toDateTime(row[MAPPING.acceptTime], dateVal) : null;
+    const arriveRest = MAPPING.arriveRestTime ? toDateTime(row[MAPPING.arriveRestTime], dateVal) : null;
+    const left = MAPPING.pickupTime ? toDateTime(row[MAPPING.pickupTime], dateVal) : null;
+    const delivered = MAPPING.deliverTime ? toDateTime(row[MAPPING.deliverTime], dateVal) : null;
+
+    const wait = minutesBetween(arriveRest, left);
+    if(wait !== null && wait >= 0){
+      c.waitSum += wait; c.waitN += 1;
+      const idx = wait<5?0: wait<10?1: wait<15?2: wait<20?3: wait<30?4:5;
+      waitBuckets[idx]++;
+    }
+    const total = minutesBetween(accept, delivered);
+    if(total !== null && total >= 0){ c.totalSum += total; c.totalN += 1; c.busyMinutes += total; }
+
+    const assign = minutesBetween(offered, accept);
+    if(assign !== null && assign >= 0){ c.assignSum += assign; c.assignN += 1; }
+
+    if(MAPPING.workHours){
+      const wh = Number(row[MAPPING.workHours]);
+      if(!isNaN(wh) && wh > c.workHoursMax) c.workHoursMax = wh;
+    }
+    if(MAPPING.amount){
+      const am = Number(row[MAPPING.amount]);
+      if(!isNaN(am)){ c.amountSum += am; c.amountN += 1; }
+    }
+    if(MAPPING.tripDistance){
+      const dist = Number(row[MAPPING.tripDistance]);
+      if(!isNaN(dist)){ c.distSum += dist; c.distN += 1; }
+    }
+
+    // proxy active-window tracking (for UTR fallback)
+    if(accept){
+      if(!c.globalMinAccept || accept < c.globalMinAccept) c.globalMinAccept = accept;
+      const dk = dayKeyOf(dateVal) || dayKeyOf(accept);
+      if(dk){
+        if(!c.perDay.has(dk)) c.perDay.set(dk, {min:accept, max:accept});
+        const pd = c.perDay.get(dk);
+        if(accept < pd.min) pd.min = accept;
+      }
+    }
+    if(delivered){
+      if(!c.globalMaxDeliver || delivered > c.globalMaxDeliver) c.globalMaxDeliver = delivered;
+      const dk = dayKeyOf(dateVal) || dayKeyOf(delivered);
+      if(dk){
+        if(!c.perDay.has(dk)) c.perDay.set(dk, {min:delivered, max:delivered});
+        const pd = c.perDay.get(dk);
+        if(delivered > pd.max) pd.max = delivered;
+      }
+    }
+
+    if(dateVal){
+      const key = dayKeyOf(dateVal);
+      if(key) dailyOrders.set(key, (dailyOrders.get(key)||0)+1);
+    }
+  });
+
+  let usingRealWorkHours = false;
+  CAPTAIN_STATS = Array.from(byCaptain.values()).map(c=>{
+    const avgWait = c.waitN ? c.waitSum/c.waitN : null;
+    const avgTotal = c.totalN ? c.totalSum/c.totalN : null;
+    const avgAssign = c.assignN ? c.assignSum/c.assignN : null;
+    const avgAmount = c.amountN ? c.amountSum/c.amountN : null;
+    const avgDist = c.distN ? c.distSum/c.distN : null;
+
+    let utr = null;
+    if(c.workHoursMax > 0 && c.busyMinutes > 0){
+      utr = (c.busyMinutes/60/c.workHoursMax)*100;
+      usingRealWorkHours = true;
+    } else if(c.busyMinutes > 0 && c.perDay.size){
+      let proxyMinutes = 0;
+      c.perDay.forEach(pd=>{ proxyMinutes += (pd.max - pd.min)/60000; });
+      if(proxyMinutes > 0) utr = Math.min(100, (c.busyMinutes/proxyMinutes)*100);
+    }
+
+    return {
+      name:c.name, orders:c.orders, avgWait, avgTotal, avgAssign, utr,
+      workHours:c.workHoursMax || null, avgAmount, avgDist
+    };
+  });
+
+  return {waitBuckets, dailyOrders, cityCounts, statusCounts, usingRealWorkHours};
+}
+
+/* ===================== RENDER ===================== */
+let CH = {};
+function showScreen(id){
+  ['screenUpload','screenMapping','screenDash'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hidden', s!==id);
+  });
+  document.getElementById('btnReset').classList.toggle('hidden', id!=='screenDash');
+  document.getElementById('btnRefreshSheet').classList.toggle('hidden', !(id==='screenDash' && SHEET_URL));
+  document.getElementById('lastSync').classList.toggle('hidden', !(id==='screenDash' && SHEET_URL));
+  if(id==='screenDash' && SHEET_URL) updateLastSync();
+  document.getElementById('topSub').textContent = id==='screenDash' ? 'البيانات محمّلة ومحلَّلة محلياً' : 'ارفع ملف البيانات لعرض التحليلات';
+}
+
+function generateDashboard(isFirstRun){
+  if(isFirstRun){ FILTER_CITY = '__all__'; FILTER_STATUS = '__all__'; buildFilters(); }
+  const rows = getFilteredRows();
+  const {waitBuckets, dailyOrders, cityCounts, statusCounts, usingRealWorkHours} = computeStats(rows);
+
+  const totalOrders = rows.length;
+  const totalCaptains = CAPTAIN_STATS.length;
+  const validWait = CAPTAIN_STATS.filter(c=>c.avgWait!==null);
+  const validTotal = CAPTAIN_STATS.filter(c=>c.avgTotal!==null);
+  const validAssign = CAPTAIN_STATS.filter(c=>c.avgAssign!==null);
+  const validUtr = CAPTAIN_STATS.filter(c=>c.utr!==null);
+  const validAmount = CAPTAIN_STATS.filter(c=>c.avgAmount!==null);
+  const validDist = CAPTAIN_STATS.filter(c=>c.avgDist!==null);
+
+  const avg = (arr,key)=> arr.length ? arr.reduce((s,c)=>s+c[key],0)/arr.length : null;
+  const avgWaitAll = avg(validWait,'avgWait');
+  const avgTotalAll = avg(validTotal,'avgTotal');
+  const avgAssignAll = avg(validAssign,'avgAssign');
+  const avgUtrAll = avg(validUtr,'utr');
+  const avgAmountAll = avg(validAmount,'avgAmount');
+  const avgDistAll = avg(validDist,'avgDist');
+  const ordersPerCaptain = totalCaptains ? totalOrders/totalCaptains : null;
+
+  document.getElementById('dashSubtitle').textContent = `${fmtNum(totalOrders)} طلب عبر ${fmtNum(totalCaptains)} كابتن`;
+  document.getElementById('utrDesc').textContent = usingRealWorkHours
+    ? 'نسبة الوقت المستغرق بالطلبات مقارنة بساعات العمل الفعلية'
+    : 'تقديري: نسبة الوقت المستغرق بالطلبات إلى نافذة نشاط الكابتن (أول قبول حتى آخر تسليم يومياً)';
+
+  const missing = [];
+  if(!MAPPING.arriveRestTime || !MAPPING.pickupTime) missing.push('وقت الانتظار بالمطعم يحتاج عمودي Driver Arrived و Driver Left');
+  if(!MAPPING.acceptTime || !MAPPING.deliverTime) missing.push('الوقت الكلي يحتاج عمودي Driver Accept و Order Delivered');
+  if(!MAPPING.orderOffered) missing.push('زمن قبول الكابتن يحتاج عمود Order Offered');
+  const noteBox = document.getElementById('missingNote');
+  if(missing.length){ noteBox.classList.remove('hidden'); noteBox.textContent = 'بعض المؤشرات غير مكتملة: ' + missing.join(' • '); }
+  else noteBox.classList.add('hidden');
+
+  const kpis = [
+    {lbl:'إجمالي الطلبات', val:fmtNum(totalOrders), cls:''},
+    {lbl:'عدد الكباتن', val:fmtNum(totalCaptains), cls:''},
+    {lbl:'متوسط وقت الانتظار بالمطعم', val: fmtMin(avgWaitAll), cls:''},
+    {lbl:'متوسط الوقت من الموافقة للتسليم', val: fmtMin(avgTotalAll), cls:'c-teal'},
+    {lbl:'متوسط زمن قبول الكابتن للطلب', val: fmtMin(avgAssignAll), cls:''},
+    {lbl:'معدل الاستغلال UTR', val: fmtPct(avgUtrAll), cls:'c-teal', tag: (avgUtrAll!==null && !usingRealWorkHours) ? 'تقديري' : ''},
+    {lbl:'طلبات لكل كابتن', val: ordersPerCaptain!==null?ordersPerCaptain.toFixed(1):'—', cls:''},
+  ];
+  if(MAPPING.amount) kpis.push({lbl:'متوسط قيمة الطلب', val: fmtMoney(avgAmountAll), cls:''});
+  if(MAPPING.tripDistance) kpis.push({lbl:'متوسط مسافة الرحلة', val: fmtKm(avgDistAll), cls:''});
+
+  document.getElementById('kpiRow').innerHTML = kpis.map(k=>`
+    <div class="kpi ${k.cls}">
+      <div class="lbl">${k.lbl}${k.tag?`<span class="tag">${k.tag}</span>`:''}</div>
+      <div class="val num">${k.val}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('dimRow').style.display = (MAPPING.city || MAPPING.completion) ? 'grid' : 'none';
+
+  renderCharts(waitBuckets, dailyOrders, cityCounts, statusCounts);
+  renderTable();
+  showScreen('screenDash');
+}
+
+function renderCharts(waitBuckets, dailyOrders, cityCounts, statusCounts){
+  Object.values(CH).forEach(c=>c && c.destroy());
+
+  const topCaptains = [...CAPTAIN_STATS].sort((a,b)=>b.orders-a.orders).slice(0,10);
+  CH.top = new Chart(document.getElementById('chartTopCaptains'), {
+    type:'bar',
+    data:{ labels:topCaptains.map(c=>c.name), datasets:[{label:'الطلبات', data:topCaptains.map(c=>c.orders), backgroundColor:'#f2a93b', borderRadius:4}] },
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true, grid:{color:'#eee'}}, y:{grid:{display:false}}} }
+  });
+
+  const waitLabels = ['0-5','5-10','10-15','15-20','20-30','30+'];
+  CH.wait = new Chart(document.getElementById('chartWaitDist'), {
+    type:'bar',
+    data:{labels:waitLabels, datasets:[{label:'عدد الطلبات', data:waitBuckets, backgroundColor:'#1e7f6e', borderRadius:4}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true, grid:{color:'#eee'}}, x:{grid:{display:false}}} }
+  });
+
+  const utrData = [...CAPTAIN_STATS].filter(c=>c.utr!==null).sort((a,b)=>b.utr-a.utr).slice(0,10);
+  CH.utr = new Chart(document.getElementById('chartUtr'), {
+    type:'bar',
+    data:{ labels:utrData.map(c=>c.name), datasets:[{label:'UTR %', data:utrData.map(c=>+c.utr.toFixed(1)), backgroundColor:'#12151c', borderRadius:4}] },
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true, max:100, grid:{color:'#eee'}}, x:{grid:{display:false}}} }
+  });
+
+  const dayKeys = Array.from(dailyOrders.keys()).sort();
+  CH.trend = new Chart(document.getElementById('chartTrend'), {
+    type:'line',
+    data:{ labels:dayKeys, datasets:[{label:'الطلبات', data:dayKeys.map(k=>dailyOrders.get(k)), borderColor:'#f2a93b', backgroundColor:'#fdf1dd', fill:true, tension:.3}] },
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true, grid:{color:'#eee'}}, x:{grid:{display:false}}} }
+  });
+
+  if(MAPPING.city){
+    const cityEntries = Array.from(cityCounts.entries()).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    CH.city = new Chart(document.getElementById('chartCity'), {
+      type:'bar',
+      data:{ labels:cityEntries.map(e=>e[0]), datasets:[{label:'الطلبات', data:cityEntries.map(e=>e[1]), backgroundColor:'#f2a93b', borderRadius:4}] },
+      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{y:{beginAtZero:true, grid:{color:'#eee'}}, x:{grid:{display:false}}} }
+    });
+  }
+  if(MAPPING.completion){
+    const statusEntries = Array.from(statusCounts.entries()).sort((a,b)=>b[1]-a[1]);
+    CH.status = new Chart(document.getElementById('chartStatus'), {
+      type:'doughnut',
+      data:{ labels:statusEntries.map(e=>e[0]), datasets:[{data:statusEntries.map(e=>e[1]), backgroundColor:['#1e7f6e','#f2a93b','#d6483a','#12151c','#8a8f99']}] },
+      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:12, font:{size:11}}}}}
+    });
+  }
+}
+
+const TABLE_COLS = [
+  {key:'name', label:'الكابتن'},
+  {key:'orders', label:'الطلبات'},
+  {key:'avgWait', label:'متوسط انتظار المطعم'},
+  {key:'avgTotal', label:'متوسط الوقت الكلي'},
+  {key:'avgAssign', label:'زمن القبول'},
+  {key:'utr', label:'UTR'},
+];
+function renderTable(){
+  const head = document.getElementById('tableHead');
+  head.innerHTML = '<th>#</th>' + TABLE_COLS.map(c=>
+    `<th data-key="${c.key}">${c.label}${SORT_STATE.key===c.key?`<span class="arrow">${SORT_STATE.dir==='desc'?'▼':'▲'}</span>`:''}</th>`
+  ).join('');
+  head.querySelectorAll('th[data-key]').forEach(th=>{
+    th.onclick = ()=>{
+      const k = th.dataset.key;
+      if(SORT_STATE.key===k) SORT_STATE.dir = SORT_STATE.dir==='desc'?'asc':'desc';
+      else { SORT_STATE.key=k; SORT_STATE.dir='desc'; }
+      renderTable();
+    };
+  });
+  drawTableBody();
+}
+function drawTableBody(){
+  const search = document.getElementById('tableSearch').value.trim().toLowerCase();
+  let rows = CAPTAIN_STATS.filter(c=>!search || c.name.toLowerCase().includes(search));
+  rows.sort((a,b)=>{
+    let va = a[SORT_STATE.key], vb = b[SORT_STATE.key];
+    if(va===null||va===undefined) va = -Infinity;
+    if(vb===null||vb===undefined) vb = -Infinity;
+    if(typeof va === 'string') return SORT_STATE.dir==='desc' ? (vb.localeCompare?.(va)||0) : (va.localeCompare?.(vb)||0);
+    return SORT_STATE.dir==='desc' ? vb-va : va-vb;
+  });
+  const body = document.getElementById('tableBody');
+  body.innerHTML = rows.map((c,i)=>{
+    let utrPill = '—';
+    if(c.utr!==null){
+      const cls = c.utr>=70?'good':(c.utr>=45?'warn':'bad');
+      utrPill = `<span class="pill ${cls}">${fmtPct(c.utr)}</span>`;
+    }
+    return `<tr>
+      <td><span class="rank">${i+1}</span></td>
+      <td>${c.name}</td>
+      <td class="num">${fmtNum(c.orders)}</td>
+      <td class="num">${c.avgWait!==null?fmtMin(c.avgWait):'—'}</td>
+      <td class="num">${c.avgTotal!==null?fmtMin(c.avgTotal):'—'}</td>
+      <td class="num">${c.avgAssign!==null?fmtMin(c.avgAssign):'—'}</td>
+      <td>${utrPill}</td>
+    </tr>`;
+  }).join('');
+}
+document.getElementById('tableSearch').addEventListener('input', drawTableBody);
+</script>
+</body>
+</html>
